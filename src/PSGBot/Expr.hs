@@ -6,6 +6,8 @@ import Control.Monad
 import Data.Fix
 import Data.Foldable
 import Data.List (find)
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Maybe
 import System.Random
 import System.Random.Stateful
@@ -22,35 +24,35 @@ data ExprF e
 type Expr = Fix ExprF
 
 data RuleF e = Rule
-  { ruleId :: Ident,
-    ruleArgs :: [Ident],
+  { ruleArgs :: [Ident],
     ruleOutput :: ExprF e
   }
   deriving (Functor, Show)
 
 type Rule = RuleF Expr
 
-newtype GrammarF e = Grammar [RuleF e] deriving (Functor, Show)
+newtype EnvF e = Env (Map Ident (RuleF e))
+  deriving (Functor, Show)
 
-type Grammar = GrammarF Expr
+type Env = EnvF Expr
 
-getRule :: GrammarF e -> Ident -> Maybe (RuleF e)
-getRule (Grammar rs) i = find (\r -> ruleId r == i) rs
+getRule :: EnvF e -> Ident -> Maybe (RuleF e)
+getRule (Env rs) i = Map.lookup i rs
 
-evalExpr :: (StatefulGen g m) => g -> Grammar -> Expr -> m [String]
-evalExpr g grammar (Fix e) = case e of
+evalExpr :: (StatefulGen g m) => g -> Env -> Expr -> m [String]
+evalExpr g env (Fix e) = case e of
   LitE l -> pure [l]
   CatE exprs -> do
-    x <- mapM (evalExpr g grammar) exprs
+    x <- mapM (evalExpr g env) exprs
     pure $ join x
   UnionE exprs -> do
     let len = length exprs
     i <- uniformRM (0, len - 1) g
     let expr = exprs !! i
-    evalExpr g grammar expr
+    evalExpr g env expr
   RuleE rName args ->
-    let rule = fromJust $ getRule grammar rName
-     in evalExpr g grammar (Fix $ ruleOutput rule)
+    let rule = fromJust $ getRule env rName
+     in evalExpr g env (Fix $ ruleOutput rule)
 
 maybeE :: Expr -> Expr
 maybeE e = Fix $ UnionE [Fix $ CatE [], e]

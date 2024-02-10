@@ -1,8 +1,9 @@
 name: psgbot
 dependencies:
   - base == 4.*
-  - random
+  - containers
   - data-fix
+  - random
 
 executables:
   psgbot:
