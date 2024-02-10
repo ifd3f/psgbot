@@ -1,0 +1,23 @@
+name: psgbot
+dependencies:
+  - base == 4.*
+  - random
+  - data-fix
+
+executables:
+  psgbot:
+    main: Main.hs
+    source-dirs:
+      - src
+      - app
+
+tests:
+  psgbot-spec:
+    main: Spec.hs
+    source-dirs:
+      - src
+      - test
+    dependencies:
+      - hspec == 2.*
+    build-tools: hspec-discover
+
