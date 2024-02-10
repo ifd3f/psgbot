@@ -22,6 +22,30 @@ testgrammar =
                   ]
               )
         ),
+        ( Ident "S2",
+          Fix
+            <$> Rule
+              []
+              ( RuleE
+                  (Ident "SuedForBeingLamer")
+                  [ RuleE (Ident "NP") [],
+                    RuleE (Ident "NP") []
+                  ]
+              )
+        ),
+        ( Ident "SuedForBeingLamer",
+          Fix
+            <$> Rule
+              [Ident "s1", Ident "s2"]
+              ( CatE
+                  [ RuleE (Ident "s1") [],
+                    LitE "sued",
+                    RuleE (Ident "s2") [],
+                    LitE "for being a lamer version of",
+                    RuleE (Ident "s1") []
+                  ]
+              )
+        ),
         ( Ident "NP",
           Rule
             []
@@ -94,7 +118,7 @@ testgrammar =
 main :: IO ()
 main = do
   let grammar = testgrammar
-  let rule = fromJust $ getRule grammar (Ident "S1")
+  let rule = fromJust $ getRule grammar (Ident "S2")
   forM_ [1 .. 10] $ \_ -> do
     seed <- randomIO :: IO Int
     let pureGen = mkStdGen seed
