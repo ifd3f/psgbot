@@ -1,4 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE LambdaCase #-}
 
 module PSGBot.Expr where
 
@@ -19,7 +21,7 @@ data ExprF e
   | RuleE Ident [e]
   | CatE [e]
   | UnionE [e]
-  deriving (Functor, Show)
+  deriving (Functor, Foldable, Traversable, Show)
 
 type Expr = Fix ExprF
 
@@ -33,23 +35,27 @@ newtype Env = Env (Map Ident Rule)
 getRule :: Env -> Ident -> Maybe Rule
 getRule (Env rs) i = Map.lookup i rs
 
-evalExpr :: (StatefulGen g m) => g -> Env -> Expr -> m [String]
-evalExpr g env@(Env envMap) (Fix e) = case e of
+reduceExpr :: (StatefulGen g m) => g -> Env -> ExprF (m [String]) -> m [String]
+reduceExpr g env@(Env envMap) = \case
   LitE l -> pure [l]
-  CatE exprs -> do
-    results <- mapM (evalExpr g env) exprs
+  CatE children -> do
+    results <- sequence children
     pure $ join results
-  UnionE exprs -> do
-    let len = length exprs
-    i <- uniformRM (0, len - 1) g
-    let expr = exprs !! i
-    evalExpr g env expr
-  RuleE rName argExprs -> do
+  UnionE children -> do
+    i <- uniformRM (0, length children - 1) g
+    children !! i
+  RuleE rName argVals -> do
+    argVals' <- sequence argVals
     let rule = fromJust $ getRule env rName
-    argResults <- mapM (evalExpr g env) argExprs
-    let argsAsExprs = map (Fix . CatE . map (Fix . LitE)) argResults
-    let env' = Map.fromList $ zip (ruleParams rule) (map (Rule []) argsAsExprs)
-    evalExpr g (Env (Map.union env' envMap)) (ruleOutput rule)
+        argValExprs = fmap (Fix . CatE . fmap (Fix . LitE)) argVals'
+        env' =
+          Map.fromList $
+            zip (ruleParams rule) (map (Rule []) argValExprs)
+     in -- must fully recurse because of eager evaluation here
+        evalExpr g (Env (Map.union env' envMap)) (ruleOutput rule)
+
+evalExpr :: (StatefulGen g m) => g -> Env -> Fix ExprF -> m [String]
+evalExpr g env = foldFix (reduceExpr g env)
 
 maybeE :: Expr -> Expr
 maybeE e = Fix $ UnionE [Fix $ CatE [], e]
