@@ -23,20 +23,14 @@ data ExprF e
 
 type Expr = Fix ExprF
 
-data RuleF e = Rule
+data Rule = Rule
   { ruleParams :: [Ident],
-    ruleOutput :: ExprF e
+    ruleOutput :: Expr
   }
-  deriving (Functor, Show)
 
-type Rule = RuleF Expr
+newtype Env = Env (Map Ident Rule)
 
-newtype EnvF e = Env (Map Ident (RuleF e))
-  deriving (Functor, Show)
-
-type Env = EnvF Expr
-
-getRule :: EnvF e -> Ident -> Maybe (RuleF e)
+getRule :: Env -> Ident -> Maybe Rule
 getRule (Env rs) i = Map.lookup i rs
 
 evalExpr :: (StatefulGen g m) => g -> Env -> Expr -> m [String]
@@ -53,9 +47,9 @@ evalExpr g env@(Env envMap) (Fix e) = case e of
   RuleE rName argExprs -> do
     let rule = fromJust $ getRule env rName
     argResults <- mapM (evalExpr g env) argExprs
-    let argsAsExprs = map (CatE . map (Fix . LitE)) argResults
+    let argsAsExprs = map (Fix . CatE . map (Fix . LitE)) argResults
     let env' = Map.fromList $ zip (ruleParams rule) (map (Rule []) argsAsExprs)
-    evalExpr g (Env (Map.union env' envMap)) (Fix $ ruleOutput rule)
+    evalExpr g (Env (Map.union env' envMap)) (ruleOutput rule)
 
 maybeE :: Expr -> Expr
 maybeE e = Fix $ UnionE [Fix $ CatE [], e]
