@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedLists #-}
+
 module PSGBot.Main where
 
 import Control.Monad
@@ -74,51 +76,47 @@ testgrammar =
         ( Ident "V",
           Rule
             []
-            ( Fix $
-                Fix
-                  <$> UnionE
-                    [ LitE "licked",
-                      LitE "bit",
-                      LitE "kissed",
-                      LitE "hugged",
-                      LitE "patted"
+            (
+                 uniformUnionE
+                     [ Fix $ LitE "licked",
+                      Fix $ LitE "bit",
+                      Fix $ LitE "kissed",
+                      Fix $ LitE "hugged",
+                      Fix $ LitE "patted"
                     ]
             )
         ),
         ( Ident "N",
           Rule
             []
-            ( Fix $
-                Fix
-                  <$> UnionE
-                    [ LitE "cat",
-                      LitE "dog",
-                      LitE "fox"
+            (
+                 uniformUnionE
+                    [ Fix $ LitE "cat",
+                      Fix $ LitE "dog",
+                      Fix $ LitE "fox"
                     ]
             )
         ),
         ( Ident "D",
           Rule
             []
-            ( Fix $
-                Fix
-                  <$> UnionE
-                    [ LitE "the",
-                      LitE "a",
-                      LitE "that"
+            (
+                 uniformUnionE
+                     [ Fix $ LitE "the",
+                      Fix $ LitE "a",
+                      Fix $ LitE "that"
                     ]
             )
         ),
         ( Ident "Adj",
           Rule
             []
-            ( Fix $
-                Fix
-                  <$> UnionE
-                    [ LitE "silly",
-                      LitE "stupid",
-                      LitE "furry",
-                      LitE "cute"
+            (
+                 uniformUnionE
+                    [ Fix $ LitE "silly",
+                      Fix $ LitE "stupid",
+                      Fix $ LitE "furry",
+                      Fix $ LitE "cute"
                     ]
             )
         )
@@ -128,7 +126,7 @@ main :: IO ()
 main = do
   let grammar = testgrammar
   let rule = fromJust $ getRule grammar (Ident "S2")
-  forM_ [1 .. 10] $ \_ -> do
+  forM_ ([1 .. 10] :: [Int]) $ \_ -> do
     seed <- randomIO :: IO Int
     let pureGen = mkStdGen seed
     rand <- newIOGenM pureGen
