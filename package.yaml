@@ -1,9 +1,10 @@
 name: psgbot
 dependencies:
   - base == 4.*
-  - containers
-  - data-fix
-  - random
+  - containers == 0.6.*
+  - data-fix == 0.3.*
+  - random == 1.2.*
+  - parsec == 3.1.*
 
 executables:
   psgbot:
@@ -19,6 +20,6 @@ tests:
       - src
       - test
     dependencies:
-      - hspec == 2.*
+      - hspec
+      - parsec == 3.1.*
     build-tools: hspec-discover
-
